@@ -32,7 +32,7 @@ function connect {
         shift
         # Don't require sudo if we don't need too.  The vswitch containers won't have sudo.
         if [ -w "$SOCKET" -a -r "$SOCKET" ]; then
-            cat "$VPPCTL_IN" | netcat -U "$SOCKET" >"$VPPCTL_OUT" &
+            cat "$VPPCTL_IN" | nc -U "$SOCKET" >"$VPPCTL_OUT" &
         else
             sudo true # prepare password-less sudo for the next command
             cat "$VPPCTL_IN" | sudo netcat -U "$SOCKET" >"$VPPCTL_OUT" &

@@ -45,6 +45,8 @@ data:
       vppHostSubnetCIDR: 172.30.0.0/16
       vppHostSubnetOneNodePrefixLen: 24
       vxlanCIDR: 192.168.30.0/24
+      serviceCIDR: 11.0.0.0/16
+    stealInterface: eth2
   controller.conf: |
     enableRetry: true
     delayRetry: 1000000000
@@ -340,7 +342,7 @@ spec:
       initContainers:
         # This container installs the Contiv CNI binaries and CNI network config file on each node.
         - name: contiv-cni
-          image: contivvpp/cni:latest
+          image: contivvpp/cni-amd64:lastest
           imagePullPolicy: IfNotPresent
           env:
             - name: SLEEP
@@ -357,7 +359,7 @@ spec:
 
         # This init container extracts/copies default VPP config to the host and initializes VPP core dumps.
         - name: vpp-init
-          image: contivvpp/vswitch:latest
+          image: contivvpp/dev-vswitch-amd64:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: HOST_IP
@@ -398,7 +400,11 @@ spec:
                  HOST_IP="[$HOST_IP]"
               fi
               sed -i "s/__HOST_IP__/$HOST_IP/g" /tmp/etcd.conf
-          resources: {}
+          resources:
+            # https://fdio-vpp.readthedocs.io/en/latest/usecases/contiv/MANUAL_INSTALL.html#using-kubernetes-1-10-and-above
+            limits:
+              hugepages-2Mi: 512Mi
+              memory: 512Mi
           securityContext:
             privileged: true
           volumeMounts:
@@ -423,29 +429,29 @@ spec:
         # Runs contiv-vswitch container on each Kubernetes node.
         # It contains the vSwitch VPP and its management agent.
         - name: contiv-vswitch
-          image: contivvpp/vswitch:latest
+          image: contivvpp/dev-vswitch-amd64:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
           ports:
             # readiness + liveness probe
             - containerPort: 9999
-          readinessProbe:
-            httpGet:
-              path: /readiness
-              port: 9999
-            periodSeconds: 3
-            timeoutSeconds: 2
-            failureThreshold: 3
-            initialDelaySeconds: 15
-          livenessProbe:
-            httpGet:
-              path: /liveness
-              port: 9999
-            periodSeconds: 3
-            timeoutSeconds: 2
-            failureThreshold: 3
-            initialDelaySeconds: 60
+#          readinessProbe:
+#            httpGet:
+#              path: /readiness
+#              port: 9999
+#            periodSeconds: 3
+#            timeoutSeconds: 2
+#            failureThreshold: 3
+#            initialDelaySeconds: 15
+#          livenessProbe:
+#            httpGet:
+#              path: /liveness
+#              port: 9999
+#            periodSeconds: 3
+#            timeoutSeconds: 2
+#            failureThreshold: 3
+#            initialDelaySeconds: 60
           env:
             - name: MICROSERVICE_LABEL
               valueFrom:
@@ -519,6 +525,10 @@ spec:
           resources:
             requests:
               cpu: 250m
+            # https://fdio-vpp.readthedocs.io/en/latest/usecases/contiv/MANUAL_INSTALL.html#using-kubernetes-1-10-and-above
+            limits:
+              hugepages-2Mi: 512Mi
+              memory: 512Mi
 
       volumes:
         # Used to connect to contiv-etcd.
@@ -657,7 +667,7 @@ spec:
 
       containers:
         - name: contiv-ksr
-          image: contivvpp/ksr:latest
+          image: contivvpp/ksr-amd64:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: ETCD_CONFIG
@@ -816,7 +826,7 @@ spec:
 
         # This init container copies contiv-netctl tool to the host.
         - name: netctl-init
-          image: contivvpp/crd:latest
+          image: contivvpp/crd-amd64:latest
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
@@ -837,7 +847,7 @@ spec:
 
       containers:
         - name: contiv-crd
-          image: contivvpp/crd:latest
+          image: contivvpp/crd-amd64:latest
           imagePullPolicy: IfNotPresent
           env:
             - name: ETCD_CONFIG

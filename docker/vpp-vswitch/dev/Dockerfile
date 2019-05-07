@@ -6,13 +6,15 @@ RUN apt-get update && apt-get install -y \
  make \
  wget \
  git \
- gcc
+ gcc; \
+ rm -rf /var/lib/apt/lists/*
 
 # install vpp
 WORKDIR $VPP_BUILD_DIR
 ARG VPP_INSTALL_PKG
 RUN if [ -n "$VPP_INSTALL_PKG" ]; then \
  apt-get install -y ./*.deb; \
+ rm -rf /var/lib/apt/lists/*; \
  fi
 
 # copy source files to the container
@@ -38,6 +40,11 @@ RUN cd $GOPATH/src/github.com/contiv/vpp \
 
 # add debug govpp.conf with larger timeouts
 COPY docker/vpp-vswitch/dev/govpp.conf /opt/vpp-agent/dev/govpp.conf
+
+# add default VPP startup config
+COPY docker/vpp-vswitch/dev/vpp.conf /etc/vpp/contiv-vswitch.conf
+RUN mkdir -p /etc/govpp \
+  && ln -s /opt/vpp-agent/dev/govpp.conf /etc/govpp/govpp.conf
 
 # add vppctl script
 COPY docker/vpp-vswitch/prod/vswitch/vppctl /usr/local/bin/vppctl
